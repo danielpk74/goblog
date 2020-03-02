@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"api/controllers"
+	"api/controllers" // Check this dependency.
 	"net/http"
 )
 

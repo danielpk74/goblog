@@ -1,6 +1,7 @@
 package api
 
 import (
+	"api/auto"
 	"api/router"
 	"config"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 // Run starts a server
 func Run() {
 	config.Load()
+	auto.Load()
 	fmt.Printf("Server is running [::]:%v", config.PORT)
 	listen(config.PORT)
 }
