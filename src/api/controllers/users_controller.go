@@ -10,14 +10,58 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 func GetUsers(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Get users"))
+	db, err := database.Connect()
+	if err != nil {
+		responses.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	repo := crud.NewRepositoryUsersDB(db)
+
+	func(usersReposotory repository.UserRepository) {
+		users, err := usersReposotory.FindAll()
+		if err != nil {
+			responses.ERROR(w, http.StatusUnprocessableEntity, err)
+			return
+		}
+		w.Header().Set("Location", fmt.Sprintf("%s%s", r.Host, r.RequestURI))
+		responses.JSON(w, http.StatusCreated, users)
+	}(repo)
 }
 
 func GetUser(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Get user"))
+
+	// Get variables values
+	vars := mux.Vars(r)
+	uid, err := strconv.ParseInt(vars["id"], 10, 32)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := database.Connect()
+	if err != nil {
+		responses.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	repo := crud.NewRepositoryUsersDB(db)
+
+	func(usersReposotory repository.UserRepository) {
+		users, err := usersReposotory.FindByID(uint32(uid))
+		if err != nil {
+			responses.ERROR(w, http.StatusUnprocessableEntity, err)
+			return
+		}
+		w.Header().Set("Location", fmt.Sprintf("%s%s", r.Host, r.RequestURI))
+		responses.JSON(w, http.StatusCreated, users)
+	}(repo)
 }
 
 func CreateUser(w http.ResponseWriter, r *http.Request) {
