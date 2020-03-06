@@ -4,6 +4,7 @@ import (
 	"api/models"
 	"api/utils/channels"
 	"errors"
+	"time"
 
 	"github.com/jinzhu/gorm"
 )
@@ -21,6 +22,7 @@ func (r *repositoryUsersCRUD) Save(user models.User) (models.User, error) {
 	done := make(chan bool)
 
 	go func(ch chan<- bool) {
+		defer close(ch)
 		err = r.db.Debug().Model(&models.User{}).Create(&user).Error
 		if err != nil {
 			ch <- false
@@ -42,6 +44,7 @@ func (r *repositoryUsersCRUD) FindAll() ([]models.User, error) {
 	done := make(chan bool)
 
 	go func(ch chan<- bool) {
+		defer close(ch)
 		err = r.db.Debug().Model(&models.User{}).Limit(100).Find(&users).Error
 		if err != nil {
 			ch <- false
@@ -63,6 +66,7 @@ func (r *repositoryUsersCRUD) FindByID(uid uint32) (models.User, error) {
 	done := make(chan bool)
 
 	go func(ch chan<- bool) {
+		defer close(ch)
 		err = r.db.Debug().Model(&models.User{}).Where("id = ?", uid).Find(&user).Error
 		if err != nil {
 			ch <- false
@@ -80,4 +84,35 @@ func (r *repositoryUsersCRUD) FindByID(uid uint32) (models.User, error) {
 	}
 
 	return user, err
+}
+
+func (r *repositoryUsersCRUD) Update(uid uint32, user models.User) (int64, error) {
+	var rs *gorm.DB
+	done := make(chan bool)
+	go func(ch chan<- bool) {
+		defer close(ch)
+		rs = r.db.Debug().Model(&models.User{}).Where("id = ?", uid).Take(&models.User{}).UpdateColumns(
+			map[string]interface{}{
+				"nickname":   user.Nickname,
+				"email":      user.Email,
+				"updated_at": time.Now(),
+			},
+		)
+		ch <- true
+	}(done)
+
+	if gorm.IsRecordNotFoundError(rs.Error) {
+
+		return 0, errors.New("user not foud")
+
+	}
+
+	if channels.OK(done) {
+		if rs.Error != nil {
+			return 0, rs.Error
+		}
+		return rs.RowsAffected, nil
+	}
+
+	return 0, rs.Error
 }

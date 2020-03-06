@@ -24,8 +24,8 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 
 	repo := crud.NewRepositoryUsersDB(db)
 
-	func(usersReposotory repository.UserRepository) {
-		users, err := usersReposotory.FindAll()
+	func(usersRepository repository.UserRepository) {
+		users, err := usersRepository.FindAll()
 		if err != nil {
 			responses.ERROR(w, http.StatusUnprocessableEntity, err)
 			return
@@ -53,10 +53,10 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 
 	repo := crud.NewRepositoryUsersDB(db)
 
-	func(usersReposotory repository.UserRepository) {
-		users, err := usersReposotory.FindByID(uint32(uid))
+	func(usersRepository repository.UserRepository) {
+		users, err := usersRepository.FindByID(uint32(uid))
 		if err != nil {
-			responses.ERROR(w, http.StatusUnprocessableEntity, err)
+			responses.ERROR(w, http.StatusBadRequest, err)
 			return
 		}
 		w.Header().Set("Location", fmt.Sprintf("%s%s", r.Host, r.RequestURI))
@@ -89,8 +89,8 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	repo := crud.NewRepositoryUsersDB(db)
 
-	func(usersReposotory repository.UserRepository) {
-		user, err = usersReposotory.Save(user)
+	func(usersRepository repository.UserRepository) {
+		user, err = usersRepository.Save(user)
 		if err != nil {
 			responses.ERROR(w, http.StatusUnprocessableEntity, err)
 			return
@@ -101,7 +101,46 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Update users"))
+	// Get variables values
+	vars := mux.Vars(r)
+	uid, err := strconv.ParseInt(vars["id"], 10, 32)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// request body validation
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		responses.ERROR(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	// model data validation
+	user := models.User{}
+	err = json.Unmarshal(body, &user)
+	if err != nil {
+		responses.ERROR(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	db, err := database.Connect()
+	if err != nil {
+		responses.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	repo := crud.NewRepositoryUsersDB(db)
+
+	func(usersRepository repository.UserRepository) {
+		rows, err := usersRepository.Update(uint32(uid), user)
+		if err != nil {
+			responses.ERROR(w, http.StatusBadRequest, err)
+			return
+		}
+		w.Header().Set("Location", fmt.Sprintf("%s%s", r.Host, r.RequestURI))
+		responses.JSON(w, http.StatusOK, rows)
+	}(repo)
 }
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
