@@ -116,3 +116,22 @@ func (r *repositoryUsersCRUD) Update(uid uint32, user models.User) (int64, error
 
 	return 0, rs.Error
 }
+
+func (r *repositoryUsersCRUD) Delete(uid int64) (int64, error) {
+	var rs *gorm.DB
+	done := make(chan bool)
+
+	go func(ch chan<- bool) {
+		defer close(ch)
+		rs = r.db.Debug().Model(&models.User{}).Where("id = ?", uid).Take(&models.User{}).Delete(&models.User{})
+		ch <- true
+	}(done)
+	if channels.OK(done) {
+		if rs.Error != nil {
+			return 0, rs.Error
+		}
+		return rs.RowsAffected, nil
+	}
+
+	return 0, rs.Error
+}
