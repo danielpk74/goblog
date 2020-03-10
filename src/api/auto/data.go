@@ -9,3 +9,10 @@ var users = []models.User{
 		Password: "Sergio William23*",
 	},
 }
+
+var posts = []models.Post{
+	models.Post{
+		Title:   "Title",
+		Content: "Content",
+	},
+}
