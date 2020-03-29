@@ -37,12 +37,12 @@ func Load() {
 		}
 
 		posts[i].AuthorID = users[i].ID
-		err = db.Debug().Model(&models.User{}).Create(&posts[i]).Error
+		err = db.Debug().Model(&models.Post{}).Create(&posts[i]).Error
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		// err = db.Debug().Model(&posts[i]).Related(&posts[i].Author).Error
+		// err = db.Debug().Model(&models.Post{}).Where("author_id = ?", posts[i].AuthorID).Take(&posts[i].Author).Error
 		// if err != nil {
 		// 	log.Fatal(err)
 		// }
