@@ -80,7 +80,7 @@ func (r *repositoryUsersCRUD) FindByID(uid uint32) (models.User, error) {
 	}
 
 	if gorm.IsRecordNotFoundError(err) {
-		return user, errors.New("user not foud")
+		return user, errors.New("user not found")
 	}
 
 	return user, err
