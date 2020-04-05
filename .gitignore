@@ -5,3 +5,12 @@
 /src/gopkg.in
 .DS_Store
 .vscode/
+/src/cloud.google.com/
+/src/contrib.go.opencensus.io/
+/src/go.opencensus.io/
+/src/go.opencensus.io/
+/src/google.golang.org/
+/src/rsc.io/
+/src/go4.org/
+/src/honnef.co/
+/src/mvdan.cc/

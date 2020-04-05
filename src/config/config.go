@@ -10,14 +10,15 @@ import (
 )
 
 var (
-	PORT     = 0
-	DB_URL   = ""
-	DB_DRIVE = ""
-	DB_USER  = ""
-	DB_PASS  = ""
-	DB_HOST  = ""
-	DB_PORT  = ""
-	DB_NAME  = ""
+	PORT       = 0
+	DB_URL     = ""
+	DB_DRIVE   = ""
+	DB_USER    = ""
+	DB_PASS    = ""
+	DB_HOST    = ""
+	DB_PORT    = ""
+	DB_NAME    = ""
+	API_SECRET []byte
 )
 
 func Load() {
@@ -47,4 +48,5 @@ func Load() {
 		DB_HOST,
 		DB_NAME,
 	)
+	API_SECRET = []byte(os.Getenv("BLOG_API_SECRET"))
 }

@@ -1,6 +1,8 @@
 package middlewares
 
 import (
+	"api/auth"
+	"api/responses"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,5 +20,18 @@ func SetMiddlewareJSON(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		next(w, r)
+	}
+}
+
+func SetMiddlewareAuthentication(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := auth.ExtractToken(r)
+		err := auth.ValidateToken(token)
+		if err != nil {
+			responses.ERROR(w, http.StatusUnauthorized, err)
+			return
+		} else {
+			next(w, r)
+		}
 	}
 }

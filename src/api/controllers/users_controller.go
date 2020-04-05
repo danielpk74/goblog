@@ -1,12 +1,14 @@
 package controllers
 
 import (
+	"api/auth"
 	"api/database"
 	"api/models"
 	"api/repository"
 	"api/repository/crud"
 	"api/responses"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -21,6 +23,7 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 		responses.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
+	defer db.Close()
 
 	repo := crud.NewRepositoryUsersDB(db)
 
@@ -50,6 +53,7 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		responses.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
+	defer db.Close()
 
 	repo := crud.NewRepositoryUsersDB(db)
 
@@ -93,6 +97,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		responses.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
+	defer db.Close()
 
 	repo := crud.NewRepositoryUsersDB(db)
 
@@ -131,11 +136,24 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	token := auth.ExtractToken(r)
+	userId, err := auth.ExtractTokenID(token)
+	if err != nil {
+		responses.ERROR(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	if userId != user.ID {
+		responses.ERROR(w, http.StatusUnauthorized, errors.New(http.StatusText(http.StatusUnauthorized)))
+		return
+	}
+
 	db, err := database.Connect()
 	if err != nil {
 		responses.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
+	defer db.Close()
 
 	repo := crud.NewRepositoryUsersDB(db)
 
@@ -158,11 +176,24 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	token := auth.ExtractToken(r)
+	userId, err := auth.ExtractTokenID(token)
+	if err != nil {
+		responses.ERROR(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	if userId != uint32(uuid) {
+		responses.ERROR(w, http.StatusUnauthorized, errors.New(http.StatusText(http.StatusUnauthorized)))
+		return
+	}
+
 	db, err := database.Connect()
 	if err != nil {
 		responses.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
+	defer db.Close()
 
 	repo := crud.NewRepositoryUsersDB(db)
 

@@ -1,12 +1,14 @@
 package controllers
 
 import (
+	"api/auth"
 	"api/database"
 	"api/models"
 	"api/repository"
 	"api/repository/crud"
 	"api/responses"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -37,11 +39,24 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	token := auth.ExtractToken(r)
+	userId, err := auth.ExtractTokenID(token)
+	if err != nil {
+		responses.ERROR(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	if userId != post.AuthorID {
+		responses.ERROR(w, http.StatusUnauthorized, errors.New(http.StatusText(http.StatusUnauthorized)))
+		return
+	}
+
 	db, err := database.Connect()
 	if err != nil {
 		responses.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
+	defer db.Close()
 
 	repo := crud.NewRepositoryPostsDB(db)
 
@@ -51,7 +66,8 @@ func CreatePost(w http.ResponseWriter, r *http.Request) {
 			responses.ERROR(w, http.StatusUnprocessableEntity, err)
 			return
 		}
-		w.Header().Set("Location", fmt.Sprintf("%s%s%d", r.Host, r.RequestURI, post.ID))
+		// w.Header().Set("Location", fmt.Sprintf("%s%s%d", r.Host, r.RequestURI, post.ID))
+		w.Header().Set("Location", fmt.Sprintf("%s%s/%d", r.Host, r.URL.Path, post.ID))
 		responses.JSON(w, http.StatusCreated, post)
 	}(repo)
 }
@@ -69,6 +85,7 @@ func GetPost(w http.ResponseWriter, r *http.Request) {
 		responses.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
+	defer db.Close()
 
 	repo := crud.NewRepositoryPostsDB(db)
 
@@ -89,6 +106,7 @@ func GetPosts(w http.ResponseWriter, r *http.Request) {
 		responses.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
+	defer db.Close()
 
 	repo := crud.NewRepositoryPostsDB(db)
 
@@ -124,11 +142,31 @@ func UpdatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	post.Prepare()
+	err = post.Validate("")
+	if err != nil {
+		responses.ERROR(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	token := auth.ExtractToken(r)
+	userId, err := auth.ExtractTokenID(token)
+	if err != nil {
+		responses.ERROR(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	if userId != post.AuthorID {
+		responses.ERROR(w, http.StatusUnauthorized, errors.New(http.StatusText(http.StatusUnauthorized)))
+		return
+	}
+
 	db, err := database.Connect()
 	if err != nil {
 		responses.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
+	defer db.Close()
 
 	repo := crud.NewRepositoryPostsDB(db)
 	func(postsRepository repository.PostRepository) {
@@ -145,9 +183,16 @@ func UpdatePost(w http.ResponseWriter, r *http.Request) {
 
 func DeletePost(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	uuid, err := strconv.ParseInt(vars["id"], 10, 32)
+	postId, err := strconv.ParseInt(vars["id"], 10, 32)
 	if err != nil {
 		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	token := auth.ExtractToken(r)
+	userId, err := auth.ExtractTokenID(token)
+	if err != nil {
+		responses.ERROR(w, http.StatusUnauthorized, err)
 		return
 	}
 
@@ -156,16 +201,17 @@ func DeletePost(w http.ResponseWriter, r *http.Request) {
 		responses.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
+	defer db.Close()
 
 	repo := crud.NewRepositoryPostsDB(db)
 
 	func(postsRepository repository.PostRepository) {
-		rows, err := postsRepository.Delete(uuid)
+		rows, err := postsRepository.Delete(postId, userId)
 		if err != nil {
 			responses.ERROR(w, http.StatusBadRequest, err)
 			return
 		}
-		w.Header().Set("Entity", fmt.Sprintf("%d%", uuid))
+		w.Header().Set("Entity", fmt.Sprintf("%d%", postId))
 		responses.JSON(w, http.StatusNoContent, rows)
 	}(repo)
 }
